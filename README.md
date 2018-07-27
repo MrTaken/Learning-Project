@@ -1,4 +1,4 @@
 # Learning Project
-Goal: Smooth digit morphing
-Used technologies: Golang, Websockets, kNN
-Used dataset: MNIST
+Goal: Smooth digit morphing<br/>
+Used technologies: Golang, Websockets, kNN<br/>
+Used dataset: MNIST<br/>
