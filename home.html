@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+</head>
+<body>
+<canvas id="myCanvas" width="28" height="28" style="position: absolute;  left: 50%; top: 50%;">
+    Your browser does not support the HTML5 canvas tag.</canvas>
+
+</body>
+<script>
+    var tempCanvas=document.createElement("canvas");
+    var tctx=tempCanvas.getContext("2d");
+    function _base64ToArrayBuffer(base64) {
+        var binary_string =  window.atob(base64);
+        var len = binary_string.length;
+        var bytes = new Uint8Array( len );
+        for (var i = 0; i < len; i++)        {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+    function resizeTo(canvas,pct){
+        var cw=canvas.width;
+        var ch=canvas.height;
+        tempCanvas.width=cw;
+        tempCanvas.height=ch;
+        tctx.drawImage(canvas,0,0);
+        canvas.width*=pct;
+        canvas.height*=pct;
+        var ctx=canvas.getContext('2d');
+        ctx.drawImage(tempCanvas,0,0,cw,ch,0,0,cw*pct,ch*pct);
+    }
+
+    window.addEventListener("load", function(evt) {
+
+        var ws;
+        var started=false;
+
+
+         {
+            if (ws) {
+                // return false;
+            }
+            ws = new WebSocket("ws://" + document.location.host +"/echo");
+            ws.onopen = function(evt) {
+                console.log("OPEN");
+            };
+            ws.onclose = function(evt) {
+                console.log("CLOSE");
+                ws = null;
+            };
+             var c=document.getElementById("myCanvas");
+             var ctx = c.getContext("2d");
+             var imgData = ctx.createImageData(28, 28);
+             var j=0;
+             var uint8Buffer;
+             var alluint8View;
+             async function iteration() {
+                 var uint8View = alluint8View.slice(j*784,(j+1)*784);
+                 // var c=document.getElementById("myCanvas");
+                 if (c.width>28)
+                     resizeTo(c,0.5);
+
+                 for (var i = 0; i < uint8View.length; i++) {
+                     var pix = 255 - uint8View[i];
+
+                     imgData.data[i * 4] = pix;
+                     imgData.data[i * 4 + 1] = pix;
+                     imgData.data[i * 4 + 2] = pix;
+                     imgData.data[i * 4 + 3] = 255;
+                 }
+                 // ctx.scale(2,2);
+                 ctx.putImageData(imgData, 0, 0);
+
+                 resizeTo(c,2);
+                 j++;
+
+                 if(j===1)
+                     ws.send("MOAR");
+                 var frameRate = 1000/15;
+                 if(j<alluint8View.length/784) {
+                     window.setTimeout(iteration, frameRate);
+                 }else{
+                     j=0;
+                     alluint8View=new Uint8Array(uint8Buffer);
+                     window.setTimeout(iteration, frameRate);
+                 }
+
+             }
+            ws.onmessage = function(evt) {
+                var decodedData = _base64ToArrayBuffer(evt.data);
+                uint8Buffer = new Uint8Array(decodedData);
+                console.log("New stuff "+j);
+
+                if(!started){
+                    alluint8View= new Uint8Array(uint8Buffer);
+                    iteration();
+                    started=true;
+                }
+
+                // console.log("RESPONSE: " + evt.data);
+            };
+            ws.onerror = function(evt) {
+                console.log("ERROR: " + evt.data);
+            }
+            // return false;
+        }
+
+    });
+
+</script>
+</html>
